@@ -45,7 +45,7 @@ function getLocationName(location) {
 }
 
 // Spotify OAuth flow (from earlier)
-const CLIENT_ID = '6ad52d27e35e4379bd8c7cf4c0b52b01'; // Replace with your Spotify Client ID
+const CLIENT_ID = '3a61b1e9521d44d1a5d1b2f7180fe994'; // Replace with your Spotify Client ID
 const REDIRECT_URI = 'https://dasali-jenario.github.io/heretunes/callback'; // Replace with your GitHub Pages URL
 
 // Check if the user is returning from Spotify authorization
