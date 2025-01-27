@@ -1,11 +1,7 @@
 let map;
 let userLocation;
-let taggedSongs = [];
 
-document.getElementById('search-button').addEventListener('click', searchSong);
-document.getElementById('tag-song-button').addEventListener('click', tagSong);
-document.getElementById('start-listening').addEventListener('click', startListening);
-
+// Initialize the map
 function initMap() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
@@ -13,10 +9,21 @@ function initMap() {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             };
-            map = new google.maps.Map(document.createElement('div'), {
+
+            // Create a map centered at the user's location
+            map = new google.maps.Map(document.getElementById('map'), {
                 center: userLocation,
                 zoom: 15
             });
+
+            // Add a marker at the user's location
+            new google.maps.Marker({
+                position: userLocation,
+                map: map,
+                title: 'Your Location'
+            });
+
+            // Get the name of the location
             getLocationName(userLocation);
         });
     } else {
@@ -24,6 +31,7 @@ function initMap() {
     }
 }
 
+// Get the name of the location using Google Maps Geocoding API
 function getLocationName(location) {
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ location }, (results, status) => {
@@ -36,83 +44,29 @@ function getLocationName(location) {
     });
 }
 
-function searchSong() {
-    const query = document.getElementById('song-search').value;
-    fetch(`https://api.spotify.com/v1/search?q=${query}&type=track`, {
-        headers: {
-            'Authorization': 'Bearer YOUR_SPOTIFY_ACCESS_TOKEN'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const results = data.tracks.items;
-        const resultsList = document.getElementById('search-results');
-        resultsList.innerHTML = '';
-        results.forEach(track => {
-            const li = document.createElement('li');
-            li.innerText = `${track.name} by ${track.artists[0].name}`;
-            li.dataset.uri = track.uri;
-            li.addEventListener('click', () => selectSong(track));
-            resultsList.appendChild(li);
-        });
-    });
-}
+// Spotify OAuth flow (from earlier)
+const CLIENT_ID = 'your-spotify-client-id'; // Replace with your Spotify Client ID
+const REDIRECT_URI = 'https://dasali-jenario.github.io/heretunes/callback'; // Replace with your GitHub Pages URL
 
-function selectSong(track) {
-    selectedSong = track;
-    document.getElementById('song-search').value = `${track.name} by ${track.artists[0].name}`;
-}
+// Check if the user is returning from Spotify authorization
+if (window.location.hash) {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
 
-function tagSong() {
-    if (!selectedSong || !userLocation) return;
-    taggedSongs.push({
-        song: selectedSong,
-        location: userLocation
-    });
-    alert('Song tagged to location!');
-}
+    if (accessToken) {
+        // Hide login button and show content
+        document.getElementById('login-button').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
 
-function startListening() {
-    if (!userLocation) return;
-    const nearestSong = findNearestSong(userLocation);
-    if (nearestSong) {
-        document.getElementById('now-playing').innerText = `Now Playing: ${nearestSong.song.name} by ${nearestSong.song.artists[0].name}`;
-        playSong(nearestSong.song.uri);
-    } else {
-        alert('No songs found within 100 meters. Tag a song!');
+        // Use the access token to make API requests
+        console.log('Access Token:', accessToken);
+        // You can now use the access token to interact with the Spotify API
     }
 }
 
-function findNearestSong(currentLocation) {
-    let nearestSong = null;
-    let nearestDistance = Infinity;
-    taggedSongs.forEach(tagged => {
-        const distance = getDistance(currentLocation, tagged.location);
-        if (distance < 100 && distance < nearestDistance) {
-            nearestSong = tagged;
-            nearestDistance = distance;
-        }
-    });
-    return nearestSong;
-}
-
-function getDistance(loc1, loc2) {
-    const R = 6371e3; // Earth radius in meters
-    const φ1 = loc1.lat * Math.PI/180;
-    const φ2 = loc2.lat * Math.PI/180;
-    const Δφ = (loc2.lat-loc1.lat) * Math.PI/180;
-    const Δλ = (loc2.lng-loc1.lng) * Math.PI/180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
-}
-
-function playSong(uri) {
-    // This function would use the Spotify Web Playback SDK to play the song
-    // For simplicity, we'll just log the URI here
-    console.log('Playing:', uri);
-}
+// Log in with Spotify
+document.getElementById('login-button').addEventListener('click', () => {
+    const scopes = 'user-read-private user-read-email'; // Add required scopes
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(scopes)}`;
+    window.location.href = authUrl;
+});
